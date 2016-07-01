@@ -170,6 +170,7 @@ static void expose(XEvent *e);
 static void focus(Client *c);
 static void focusin(XEvent *e);
 static void focusmon(const Arg *arg);
+static void focusnth(const Arg *arg);
 static void focusstack(const Arg *arg);
 static int getrootptr(int *x, int *y);
 static long getstate(Window w);
@@ -186,6 +187,7 @@ static void monocle(Monitor *m);
 static void motionnotify(XEvent *e);
 static void movemouse(const Arg *arg);
 static Client *nexttiled(Client *c);
+static Client *nthtiled(int n);
 static void pop(Client *);
 static void propertynotify(XEvent *e);
 static void quit(const Arg *arg);
@@ -234,6 +236,7 @@ static int xerror(Display *dpy, XErrorEvent *ee);
 static int xerrordummy(Display *dpy, XErrorEvent *ee);
 static int xerrorstart(Display *dpy, XErrorEvent *ee);
 static void zoom(const Arg *arg);
+static void zoomnth(const Arg *arg);
 
 /* variables */
 static const char broken[] = "broken";
@@ -860,6 +863,16 @@ focusmon(const Arg *arg)
 }
 
 void
+focusnth(const Arg *arg)
+{
+	Client *c = nthtiled(arg->i);
+	if (c) {
+		focus(c);
+		restack(selmon);
+	}
+}
+
+void
 focusstack(const Arg *arg)
 {
 	Client *c = NULL, *i;
@@ -1240,6 +1253,16 @@ Client *
 nexttiled(Client *c)
 {
 	for (; c && (c->isfloating || !ISVISIBLE(c)); c = c->next);
+	return c;
+}
+
+Client *
+nthtiled(int n)
+{
+	Client *c;
+	for (c = selmon->clients; c && n > 0; c = c->next)
+		if (!c->isfloating && ISVISIBLE(c))
+			n--;
 	return c;
 }
 
@@ -2144,6 +2167,18 @@ zoom(const Arg *arg)
 		if (!c || !(c = nexttiled(c->next)))
 			return;
 	pop(c);
+}
+
+void
+zoomnth(const Arg *arg)
+{
+	Arg a;
+	Client *c = nthtiled(arg->i);
+	if (c) {
+		focus(c);
+ 		zoom(&a);
+		restack(selmon);
+	}
 }
 
 int
