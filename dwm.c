@@ -1259,9 +1259,8 @@ nexttiled(Client *c)
 Client *
 nthtiled(int n)
 {
-	Client *c;
-	for (c = selmon->clients; c && n > 0; c = c->next)
-		if (!c->isfloating && ISVISIBLE(c))
+	Client *c = nexttiled(selmon->clients);
+	for (; c && n > 0; c = nexttiled(c->next))
 			n--;
 	return c;
 }
