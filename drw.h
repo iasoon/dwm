@@ -12,7 +12,6 @@ typedef struct Fnt {
 	struct Fnt *next;
 } Fnt;
 
-enum { ColFg, ColBg, ColCount }; /* Scm index */
 typedef XftColor *Scm;
 
 typedef struct {
@@ -22,7 +21,6 @@ typedef struct {
 	Window root;
 	Drawable drawable;
 	GC gc;
-	Scm scheme;
 	Fnt *fonts;
 } Drw;
 
@@ -47,11 +45,10 @@ void drw_cur_free(Drw *drw, Cur *cursor);
 
 /* Drawing context manipulation */
 void drw_setfontset(Drw *drw, Fnt *set);
-void drw_setscheme(Drw *drw, Scm scm);
 
 /* Drawing functions */
-void drw_rect(Drw *drw, int x, int y, unsigned int w, unsigned int h, int filled, int invert);
-int drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, unsigned int lpad, const char *text, int invert);
+void drw_rect(Drw *drw, int x, int y, unsigned int w, unsigned int h, XftColor *color);
+int drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, const char *text, XftColor *color);
 
 /* Map functions */
 void drw_map(Drw *drw, Window win, int x, int y, unsigned int w, unsigned int h);
