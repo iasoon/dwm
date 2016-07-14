@@ -4,13 +4,65 @@
 static const char *fonts[] = {
 	"monospace:size=10"
 };
+static const char base03[]	= "#002b36";
+static const char base02[]	= "#073642";
+static const char base01[]	= "#586e75";
+static const char base00[]	= "#657b83";
+static const char base0[]	= "#839496";
+static const char base1[]	= "#93a1a1";
+static const char base2[]	= "#eee8d5";
+static const char base3[]	= "#fdf6e3";
+static const char yellow[]	= "#b58900";
+static const char orange[]	= "#cb4b16";
+static const char red[]		= "#dc322f";
+static const char magenta[] = "#d33682";
+static const char violet[]	= "#6c71c4";
+static const char blue[]	= "#268bd2";
+static const char cyan[]	= "#2aa198";
+static const char green[]	= "#859900";
+
+enum {
+	SolarizedDark,
+	SolarizedLight,
+	PaletteCount,
+};
+
+static const char *colors[PaletteCount][ColCount] = {
+	[SolarizedDark] = {
+		/* Bar */
+		[ColBar]	   = base03,
+		[ColText]	   = base1,
+		/* Tags */
+		[ColTag]	   = base3,
+		[ColSelected]  = yellow,
+		[ColHighlight] = blue,
+		[ColVacant]	   = base0,
+		/* Borders */
+		[ColBorder]	   = base03,
+	},
+	[SolarizedLight] = {
+		/* Bar */
+		[ColBar]	   = base3,
+		[ColText]	   = base01,
+		/* Tags */
+		[ColTag]	   = base03,
+		[ColSelected]  = yellow,
+		[ColHighlight] = blue,
+		[ColVacant]	   = base00,
+		/* Borders */
+		[ColBorder]	   = base03,
+	},
+};
+
+static const unsigned int emptypalette   = SolarizedLight;
+static const unsigned int defaultpalette = SolarizedDark;
+static const ClientPalette clientpalettes[] = {
+	/* title	palette */
+	{"st",		SolarizedLight},
+	{"emacs",	SolarizedLight},
+};
+
 static const char dmenufont[]       = "monospace:size=10";
-static const char normbordercolor[] = "#002b36";
-static const char normbgcolor[]     = "#002b36";
-static const char normfgcolor[]     = "#fdf6e3";
-static const char selbordercolor[]  = "#002b36";
-static const char selbgcolor[]      = "#fdf6e3";
-static const char selfgcolor[]      = "#002b36";
 static const unsigned int borderpx  = 1;        /* border pixel of windows */
 static const unsigned int snap      = 32;       /* snap pixel */
 static const int showbar            = 1;        /* 0 means no bar */
@@ -58,7 +110,10 @@ static const Layout layouts[] = {
 
 /* commands */
 static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() */
-static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", normbgcolor, "-nf", normfgcolor, "-sb", selbgcolor, "-sf", selfgcolor, NULL };
+static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont,
+								  "-nb", base02, "-nf", base3,
+								  "-sb", base3 , "-sf", base02,
+								  NULL };
 static const char *termcmd[]  = { "st", NULL };
 
 static Key keys[] = {
@@ -75,8 +130,7 @@ static Key keys[] = {
 	{ MODKEY,                       XK_Return, zoom,           {0} },
 	{ MODKEY,                       XK_Tab,    view,           {0} },
 	{ MODKEY|ShiftMask,             XK_c,      killclient,     {0} },
-	{ MODKEY,                       XK_t,      setlayout,      {.v = &layouts[0]} },
-	{ MODKEY,                       XK_l,      setlayout,      {.v = &layouts[1]} },
+	{ MODKEY,                       XK_l,      setlayout,      {.v = &layouts[0]} },
 	{ MODKEY,                       XK_f,      setlayout,      {.v = &layouts[2]} },
 	{ MODKEY,                       XK_space,  setlayout,      {0} },
 	{ MODKEY|ShiftMask,             XK_space,  togglefloating, {0} },
