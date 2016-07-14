@@ -153,6 +153,11 @@ typedef struct {
 	int monitor;
 } Rule;
 
+typedef struct {
+	const char *title;
+	unsigned int palette;
+} ClientPalette;
+
 /* function declarations */
 static void applyrules(Client *c);
 static int applysizehints(Client *c, int *x, int *y, int *w, int *h, int interact);
@@ -277,7 +282,6 @@ static void (*handler[LASTEvent]) (XEvent *) = {
 static Atom wmatom[WMLast], netatom[NetLast];
 static int running = 1;
 static Cur *cursor[CurLast];
-static Scm scheme;
 static Display *dpy;
 static Drw *drw;
 static Monitor *mons, *selmon;
@@ -285,6 +289,8 @@ static Window root;
 
 /* configuration, allows nested code to access above variables */
 #include "config.h"
+
+static Palette palettes[PaletteCount];
 
 /* compile-time check if all tags fit into an unsigned int bit array. */
 struct NumTags { char limitexceeded[LENGTH(tags) > 31 ? -1 : 1]; };
@@ -512,7 +518,8 @@ cleanup(void)
 		cleanupmon(mons);
 	for (i = 0; i < CurLast; i++)
 		drw_cur_free(drw, cursor[i]);
-	free(scheme);
+	for (i = 0; i < PaletteCount; i++)
+		free(palettes[i]);
 	drw_free(drw);
 	XSync(dpy, False);
 	XSetInputFocus(dpy, PointerRoot, RevertToPointerRoot, CurrentTime);
@@ -737,31 +744,48 @@ void
 drawbar(Monitor *m)
 {
 	int x, w, sw = 0;
-	unsigned int i, occ = 0, urg = 0;
-	Client *c;
-
-	/* draw bar background */
-	drw_rect(drw, 0, 0, m->ww, bh, &scheme[ColBar]);
-
-	/* draw status first so it can be overdrawn by tags later */
-	if (m == selmon) { /* status is only drawn on selected monitor */
-		sw = TEXTW(stext) - lrpad / 2; /* no right padding so status text hugs the corner */
-		drw_text(drw, m->ww - sw, 0, sw, bh, stext, &scheme[ColText]);
-	}
+	unsigned int i, occ = 0, urg = 0, count = 0;
+	Client *c, *client;
+	Palette palette = 0;
 
 	for (c = m->clients; c; c = c->next) {
 		occ |= c->tags;
 		if (c->isurgent)
 			urg |= c->tags;
+		if (ISVISIBLE(c) && !c->isfloating) {
+			count++;
+			client = c;
+		}
 	}
+
+	if (count == 0)
+		palette = palettes[emptypalette];
+	else if (count == 1 || m->lt[m->sellt]->arrange == monocle) {
+		/* TODO: implement better matching */
+		for (i = 0; i < LENGTH(clientpalettes); i++)
+			if (strstr(client->name, clientpalettes[i].title))
+				palette = palettes[clientpalettes[i].palette];
+		}
+	if (!palette)
+		palette = palettes[defaultpalette];
+	  
+	/* draw bar background */
+	drw_rect(drw, 0, 0, m->ww, bh, &palette[ColBar]);
+
+	/* draw status first so it can be overdrawn by tags later */
+	if (m == selmon) { /* status is only drawn on selected monitor */
+		sw = TEXTW(stext) - lrpad / 2; /* no right padding so status text hugs the corner */
+		drw_text(drw, m->ww - sw, 0, sw, bh, stext, &palette[ColText]);
+	}
+	
 	x = 0;
 	for (i = 0; i < LENGTH(tags); i++) {
 		w = TEXTW(tags[i]);
 		drw_text(drw, x + lrpad/2 , 2, w, bh, tags[i],
-				 &scheme[occ & 1 << i ? ColTag : ColVacant]);
+				 &palette[occ & 1 << i ? ColTag : ColVacant]);
 		if (m->tagset[m->seltags] & 1 << i)
 			drw_rect(drw, x, 0, w, 2,
-					 &scheme[m->sel && m->sel->tags & 1 << i ? ColHighlight : ColSelected]);
+					 &palette[m->sel && m->sel->tags & 1 << i ? ColHighlight : ColSelected]);
 		x += w;
 	}
 	w = blw = TEXTW(m->ltsymbol);
@@ -824,7 +848,7 @@ focus(Client *c)
 		detachstack(c);
 		attachstack(c);
 		grabbuttons(c, 1);
-		XSetWindowBorder(dpy, c->win, scheme[ColBorder].pixel);
+		//XSetWindowBorder(dpy, c->win, scheme[ColBorder].pixel);
 		setfocus(c);
 	} else {
 		XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
@@ -1093,7 +1117,7 @@ manage(Window w, XWindowAttributes *wa)
 
 	wc.border_width = c->bw;
 	XConfigureWindow(dpy, w, CWBorderWidth, &wc);
-	XSetWindowBorder(dpy, w, scheme[ColBorder].pixel);
+	XSetWindowBorder(dpy, w, palettes[defaultpalette][ColBorder].pixel);
 	configure(c); /* propagates border_width, if size doesn't change */
 	updatewindowtype(c);
 	updatesizehints(c);
@@ -1592,6 +1616,7 @@ setmfact(const Arg *arg)
 void
 setup(void)
 {
+	int i;
 	XSetWindowAttributes wa;
 
 	/* clean up any zombies immediately */
@@ -1626,7 +1651,8 @@ setup(void)
 	cursor[CurResize] = drw_cur_create(drw, XC_sizing);
 	cursor[CurMove] = drw_cur_create(drw, XC_fleur);
 	/* init appearance */
-	scheme = drw_scm_create(drw, colors, ColCount);
+	for (i = 0; i < PaletteCount; i++)
+		palettes[i] = drw_palette_create(drw, colors[i], ColCount);
 	/* init bars */
 	updatebars();
 	updatestatus();
@@ -1788,7 +1814,7 @@ unfocus(Client *c, int setfocus)
 	if (!c)
 		return;
 	grabbuttons(c, 0);
-	XSetWindowBorder(dpy, c->win, scheme[ColBorder].pixel);
+	//XSetWindowBorder(dpy, c->win, scheme[ColBorder].pixel);
 	if (setfocus) {
 		XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
 		XDeleteProperty(dpy, root, netatom[NetActiveWindow]);

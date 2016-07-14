@@ -193,11 +193,11 @@ drw_clr_create(Drw *drw, XftColor *dest, const char *clrname)
 
 /* Wrapper to create color schemes. The caller has to call free(3) on the
  * returned color scheme when done using it. */
-Scm
-drw_scm_create(Drw *drw, const char *clrnames[], size_t clrcount)
+Palette
+drw_palette_create(Drw *drw, const char *clrnames[], size_t clrcount)
 {
 	size_t i;
-	Scm ret;
+	Palette ret;
 
 	/* need at least two colors for a scheme */
 	if (!drw || !clrnames || clrcount < 2 || !(ret = ecalloc(clrcount, sizeof(XftColor))))
